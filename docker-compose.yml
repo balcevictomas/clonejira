@@ -1,0 +1,57 @@
+version: '3.8'
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        volumes:
+            - .:/var/www
+        ports:
+            - "9000:9000"
+        networks:
+            - laravel
+
+    nginx:
+        image: nginx:latest
+        ports:
+            - "8081:80"
+        depends_on:
+            - app
+        working_dir: /var/www
+        environment:
+            - NGINX_HOST=app
+            - NGINX_PORT=9000
+
+        # Nginx Configuration
+        tty: true
+        command: [ nginx, -g, "daemon off;" ]
+        stdin_open: true
+        volumes:
+            - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+            - .:/var/www
+
+        networks:
+            - laravel
+
+    db:
+        image: mysql:latest
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+        ports:
+            - "3307:3306"
+        networks:
+            - laravel
+    redis:
+        image: redis:alpine
+        command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
+        ports:
+            - "6379:6379"
+        networks:
+            - laravel
+
+networks:
+    laravel:
+        driver: bridge
